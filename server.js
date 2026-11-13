@@ -137,10 +137,15 @@ function generateOTP(req, email, options = {}) {
   return { otp, reused: false };
 }
 
+//function isOtpMailConfigured() {
+// Gmail OTP sending needs OTP_EMAIL_USER and OTP_EMAIL_APP_PASSWORD.
+// If these are not set, the app still works in demo mode by printing OTP in the terminal.
+//return Boolean(process.env.OTP_EMAIL_USER && process.env.OTP_EMAIL_APP_PASSWORD);
+//}
+
 function isOtpMailConfigured() {
-  // Gmail OTP sending needs OTP_EMAIL_USER and OTP_EMAIL_APP_PASSWORD.
-  // If these are not set, the app still works in demo mode by printing OTP in the terminal.
-  return Boolean(process.env.OTP_EMAIL_USER && process.env.OTP_EMAIL_APP_PASSWORD);
+  // Demo mode: disable Gmail OTP and print OTP in the terminal.
+  return false;
 }
 
 function getOtpMailer() {
