@@ -53,3 +53,20 @@ Screenshots of the application's main pages will be provided in this repository.
 - Protected actions use session-based login and transaction PIN verification.
 - Transaction history depends on the transaction table in MySQL.
 - Wallet top-up and transfer functions are simulated within the application and are not connected to a real payment gateway.
+
+## Screenshots
+
+### Login Page
+![Login Page](screenshotslogin.png)
+
+### OTP Verification
+![OTP Verification](screenshotsotp-verification.png)
+
+### Dashboard
+![Dashboard](screenshotsdashboard.png)
+
+### Transfer Page
+![Transfer Page](screenshotstransfer.png)
+
+### Transaction History
+![Transaction History](screenshotstransaction-history.png)
