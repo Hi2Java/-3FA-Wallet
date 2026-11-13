@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+  <head>
+    <title>FortiWallet | OTP Verification</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+
+  <body>
+    <div class="container otp-container">
+      <div class="brand-badge">STEP 2 OF 3</div>
+      <h2>OTP Verification</h2>
+
+      <form id="otpForm" action="/verify-otp" method="POST">
+        <div class="otp-input-group">
+          <input type="text" maxlength="1" class="otp-input" inputmode="numeric" />
+          <input type="text" maxlength="1" class="otp-input" inputmode="numeric" />
+          <input type="text" maxlength="1" class="otp-input" inputmode="numeric" />
+          <input type="text" maxlength="1" class="otp-input" inputmode="numeric" />
+          <input type="text" maxlength="1" class="otp-input" inputmode="numeric" />
+          <input type="text" maxlength="1" class="otp-input" inputmode="numeric" />
+        </div>
+
+        <input type="hidden" name="otp" id="otpHidden" />
+        <button type="submit" id="verifyOtpBtn">Verify OTP</button>
+      </form>
+
+      <button id="resendBtn" type="button" onclick="resendOTP()" disabled>Resend OTP</button>
+      <p id="timer"></p>
+      <p id="error"></p>
+    </div>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const error = params.get("error");
+      if (error) {
+        document.getElementById("error").innerText = error;
+      }
+
+      const inputs = document.querySelectorAll(".otp-input");
+      const hiddenInput = document.getElementById("otpHidden");
+      const form = document.getElementById("otpForm");
+      const verifyBtn = document.getElementById("verifyOtpBtn");
+      const timer = document.getElementById("timer");
+      const errorText = document.getElementById("error");
+      const btn = document.getElementById("resendBtn");
+      let resendBusy = false;
+      let verifying = false;
+      let countdownId = null;
+
+      function startCooldown(seconds = 30) {
+        let timeLeft = seconds;
+        btn.disabled = true;
+        if (countdownId) clearInterval(countdownId);
+        timer.innerText = `Resend available in ${timeLeft}s`;
+        countdownId = setInterval(() => {
+          timeLeft -= 1;
+          if (timeLeft <= 0) {
+            timer.innerText = "You can resend OTP now";
+            btn.disabled = false;
+            clearInterval(countdownId);
+            countdownId = null;
+            return;
+          }
+          timer.innerText = `Resend available in ${timeLeft}s`;
+        }, 1000);
+      }
+
+      function updateOTP() {
+        let otp = "";
+        inputs.forEach((i) => {
+          otp += i.value;
+        });
+        hiddenInput.value = otp;
+
+        if (otp.length === 6 && !verifying) {
+          verifying = true;
+          verifyBtn.disabled = true;
+          form.requestSubmit();
+        }
+      }
+
+      inputs.forEach((input, index) => {
+        input.addEventListener("input", () => {
+          input.value = input.value.replace(/\D/g, "");
+
+          if (input.value.length === 1 && index < inputs.length - 1) {
+            inputs[index + 1].focus();
+          }
+
+          updateOTP();
+        });
+
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Backspace" && input.value === "" && index > 0) {
+            inputs[index - 1].focus();
+          }
+        });
+      });
+
+      async function resendOTP() {
+        if (resendBusy || btn.disabled) return;
+        resendBusy = true;
+        btn.disabled = true;
+
+        try {
+          const res = await fetch("/resend-otp", { method: "POST" });
+          const text = await res.text();
+
+          if (text.toLowerCase().includes("resent") || text.toLowerCase().includes("regenerated")) {
+            inputs.forEach((input) => {
+              input.value = "";
+            });
+            hiddenInput.value = "";
+            verifying = false;
+            verifyBtn.disabled = false;
+            errorText.innerText = "A new OTP has been sent.";
+            startCooldown(30);
+          } else {
+            btn.disabled = false;
+            errorText.innerText = text;
+          }
+        } catch (fetchError) {
+          btn.disabled = false;
+          errorText.innerText = "Unable to resend OTP right now.";
+        } finally {
+          resendBusy = false;
+        }
+      }
+
+      form.addEventListener("submit", () => {
+        verifyBtn.disabled = true;
+      });
+
+      startCooldown(30);
+    </script>
+  </body>
+</html>

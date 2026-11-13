@@ -1,0 +1,27 @@
+CREATE DATABASE IF NOT EXISTS fyp_database;
+USE fyp_database;
+
+CREATE TABLE IF NOT EXISTS user (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  pin VARCHAR(255) NOT NULL,
+  balance DECIMAL(12,2) NOT NULL DEFAULT 1000.00
+);
+
+CREATE TABLE IF NOT EXISTS transactions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  sender VARCHAR(255) NOT NULL,
+  receiver VARCHAR(255) NOT NULL,
+  amount DECIMAL(12,2) NOT NULL,
+  timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS favourite_recipients (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  owner_email VARCHAR(255) NOT NULL,
+  recipient_email VARCHAR(255) NOT NULL,
+  nickname VARCHAR(50) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_favourite_recipient (owner_email, recipient_email)
+);

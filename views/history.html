@@ -1,0 +1,135 @@
+﻿<!doctype html>
+<html>
+  <head>
+    <title>FortiWallet | Activity</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+
+  <body>
+    <div class="dashboard-app app-shell">
+      <aside class="dashboard-sidebar">
+        <div class="sidebar-brand"><div class="brand-mark"><span></span><span></span></div><div><div class="sidebar-brand-name">FortiWallet</div><div class="sidebar-brand-subtitle">Secure e-wallet</div></div></div>
+        <div class="sidebar-profile"><div class="sidebar-avatar" id="profileInitial">F</div><div class="sidebar-profile-copy"><strong>Welcome</strong><span id="profileEmailLine">Loading account...</span></div></div>
+        <nav class="sidebar-nav">
+          <a href="/dashboard" class="sidebar-link">Dashboard</a>
+          <a href="/transfer.html" class="sidebar-link">Transfer</a>
+          <a href="/topup.html" class="sidebar-link">Top Up</a>
+          <a href="/history.html" class="sidebar-link active">History</a>
+          <a href="/linkedcard.html" class="sidebar-link">Manage Card</a>
+          <a href="/editprofile.html" class="sidebar-link">Edit Profile</a>
+        </nav>
+        <div class="sidebar-footer"><a href="/logout" class="sidebar-link sidebar-link-danger">Log Out</a></div>
+      </aside>
+
+      <main class="dashboard-main app-page-main">
+        <section class="dashboard-header-card page-header-card compact-header-card">
+          <div><div class="dashboard-overline">Wallet Activity</div><h1>History</h1><p class="dashboard-subtitle">Browse your latest transfers and top ups in one full timeline.</p></div>
+          <div class="page-header-aside"><div class="metric-chip compact-metric"><span class="metric-label">Records</span><strong id="historyCount">0 records</strong></div></div>
+        </section>
+
+        <section class="page-grid history-single-grid">
+          <div class="panel history-panel-wide compact-panel history-main-panel">
+            <div class="panel-head compact-panel-head history-main-head">
+              <div>
+                <div class="panel-kicker">Transaction History</div>
+                <h2 id="historyTitle">All wallet activity</h2>
+                <p class="panel-note compact-note">This page keeps the full list inside a scroll area so the layout stays stable when records grow.</p>
+              </div>
+              <div class="history-head-tools">
+                <span id="historyStatus" class="history-status-pill">Loading transactions...</span>
+                <div class="filter-pill-row">
+                  <button type="button" class="filter-pill active" data-filter="all">All</button>
+                  <button type="button" class="filter-pill" data-filter="topup">Top Up</button>
+                  <button type="button" class="filter-pill" data-filter="transfer">Transfer</button>
+                </div>
+              </div>
+            </div>
+            <div id="history" class="history-list dashboard-history-list history-scroll-region"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/auth.js"></script>
+    <script>
+      let currentUser = null;
+      let allRows = [];
+      let activeFilter = "all";
+      function getInitial(email) { return String(email || "F").trim().charAt(0).toUpperCase(); }
+      function isTopup(tx, email) {
+        return tx.receiver === email && tx.sender !== email && /bank|maybank|cimb|public|rhb|hong leong|islam/i.test(String(tx.sender || ""));
+      }
+      function isTransfer(tx, email) {
+        return !isTopup(tx, email);
+      }
+      function getFilteredRows() {
+        if (activeFilter === "topup") return allRows.filter((tx) => isTopup(tx, currentUser.email));
+        if (activeFilter === "transfer") return allRows.filter((tx) => isTransfer(tx, currentUser.email));
+        return allRows;
+      }
+      function renderHistory() {
+        const container = document.getElementById("history");
+        const status = document.getElementById("historyStatus");
+        const count = document.getElementById("historyCount");
+        const title = document.getElementById("historyTitle");
+        const rows = getFilteredRows();
+        container.innerHTML = "";
+        if (!rows.length) {
+          status.innerText = "No records yet";
+          count.innerText = "0 records";
+          title.innerText = activeFilter === "topup" ? "Top up history" : activeFilter === "transfer" ? "Transfer history" : "All wallet activity";
+          container.innerHTML = '<div class="empty-state dark-empty-state"><strong>No wallet activity recorded</strong><p>Your transfer and top up records will appear here.</p></div>';
+          return;
+        }
+        title.innerText = activeFilter === "topup" ? "Top up history" : activeFilter === "transfer" ? "Transfer history" : "All wallet activity";
+        status.innerText = rows.length + ' record' + (rows.length > 1 ? 's' : '');
+        count.innerText = rows.length + ' record' + (rows.length > 1 ? 's' : '');
+        rows.forEach((tx) => {
+          const isSender = tx.sender === currentUser.email;
+          const topup = isTopup(tx, currentUser.email);
+          const tagLabel = topup ? "TOP UP" : isSender ? "TRANSFER OUT" : "TRANSFER IN";
+          const tagClass = topup ? "tx-tag-topup" : isSender ? "tx-tag-out" : "tx-tag-in";
+          const time = new Date(tx.timestamp);
+          const div = document.createElement("div");
+          div.className = "tx-item tx-item-dark";
+          const info = document.createElement("div");
+          info.className = "tx-info";
+          const tag = document.createElement("div");
+          tag.className = `tx-tag ${tagClass}`;
+          tag.textContent = tagLabel;
+          const title = document.createElement("div");
+          title.className = "tx-title";
+          title.textContent = topup ? `Top up from ${tx.sender}` : isSender ? `Sent to ${tx.receiver}` : `Received from ${tx.sender}`;
+          const timeText = document.createElement("div");
+          timeText.className = "tx-time";
+          timeText.textContent = `${time.toLocaleDateString()} | ${time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+          info.append(tag, title, timeText);
+          const amount = document.createElement("div");
+          amount.className = `tx-amount ${isSender ? "tx-negative" : "tx-positive"}`;
+          amount.textContent = `${isSender ? "-" : "+"}RM ${parseFloat(tx.amount).toFixed(2)}`;
+          div.append(info, amount);
+          container.appendChild(div);
+        });
+      }
+      requireAuth().then((user) => {
+        if (!user) return;
+        currentUser = user;
+        document.getElementById("profileEmailLine").innerText = user.email;
+        document.getElementById("profileInitial").innerText = getInitial(user.email);
+        fetch("/transactions").then((res) => res.json()).then((data) => {
+          allRows = Array.isArray(data) ? data : [];
+          renderHistory();
+        }).catch(() => { document.getElementById("historyStatus").innerText = "Unable to load"; });
+      });
+      document.querySelectorAll(".filter-pill").forEach((button) => {
+        button.addEventListener("click", () => {
+          activeFilter = button.dataset.filter;
+          document.querySelectorAll(".filter-pill").forEach((item) => item.classList.remove("active"));
+          button.classList.add("active");
+          renderHistory();
+        });
+      });
+    </script>
+  </body>
+</html>

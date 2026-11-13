@@ -1,0 +1,313 @@
+<!doctype html>
+<html>
+  <head>
+    <title>FortiWallet | Top Up</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+
+  <body>
+    <div class="dashboard-app app-shell">
+      <aside class="dashboard-sidebar">
+        <div class="sidebar-brand"><div class="brand-mark"><span></span><span></span></div><div><div class="sidebar-brand-name">FortiWallet</div><div class="sidebar-brand-subtitle">Secure e-wallet</div></div></div>
+        <div class="sidebar-profile"><div class="sidebar-avatar" id="profileInitial">F</div><div class="sidebar-profile-copy"><strong>Welcome</strong><span id="profileEmailLine">Loading account...</span></div></div>
+        <nav class="sidebar-nav">
+          <a href="/dashboard" class="sidebar-link">Dashboard</a>
+          <a href="/transfer.html" class="sidebar-link">Transfer</a>
+          <a href="/topup.html" class="sidebar-link active">Top Up</a>
+          <a href="/history.html" class="sidebar-link">History</a>
+          <a href="/linkedcard.html" class="sidebar-link">Manage Card</a>
+          <a href="/editprofile.html" class="sidebar-link">Edit Profile</a>
+        </nav>
+        <div class="sidebar-footer"><a href="/logout" class="sidebar-link sidebar-link-danger">Log Out</a></div>
+      </aside>
+
+      <main class="dashboard-main app-page-main">
+        <section class="dashboard-header-card page-header-card compact-header-card">
+          <div><div class="dashboard-overline">Wallet Funding</div><h1>Top Up</h1><p class="dashboard-subtitle">Add money using a saved bank card or enter one manually.</p></div>
+          <div class="page-header-aside"><div class="metric-chip compact-metric"><span class="metric-label">Wallet Balance</span><strong>RM <span id="balanceValue">0.00</span></strong></div></div>
+        </section>
+
+        <section class="page-grid two-column-grid">
+          <div class="panel form-panel compact-panel">
+            <div class="panel-head panel-head-column compact-panel-head"><div><div class="panel-kicker">Add Balance</div><h2>Top Up Details</h2></div><p class="panel-note">Use your saved bank card for quick top ups, or enter one manually when needed.</p></div>
+            <div id="linkedCardPanel" class="linked-card-strip"><div><strong>Bank Card</strong><p id="linkedCardText" class="helper-text">Loading linked card...</p></div><a href="/linkedcard.html" class="summary-link">Manage card</a></div>
+            <div id="savedCardOnlyNotice" class="saved-card-only-notice hidden"><strong>Saved card ready</strong><p class="helper-text no-bottom-space">Your linked card is already selected. You only need to enter the top up amount.</p></div>
+            <form id="topupForm" class="panel-form compact-form-layout">
+              <input type="hidden" name="useSavedCard" id="useSavedCard" value="0" />
+              <div id="manualCardFields" class="manual-card-fields">
+                <label class="field-label" for="topupBankName">Bank</label>
+                <select id="topupBankName" name="bankName" required>
+                  <option value="">Select Bank</option>
+                  <option value="Maybank">Maybank</option>
+                  <option value="CIMB Bank">CIMB Bank</option>
+                  <option value="Public Bank">Public Bank</option>
+                  <option value="RHB Bank">RHB Bank</option>
+                  <option value="Hong Leong Bank">Hong Leong Bank</option>
+                  <option value="Bank Islam">Bank Islam</option>
+                </select>
+                <label class="field-label" for="topupCardNumber">Card Number</label>
+                <input id="topupCardNumber" type="text" name="cardNumber" placeholder="1111 2222 3333 4444" maxlength="19" inputmode="numeric" required />
+              </div>
+              <label class="field-label" for="topupAmount">Top Up Amount</label>
+              <div class="amount-field"><span class="amount-prefix">RM</span><input id="topupAmount" type="number" name="amount" placeholder="0.00" min="1" step="0.01" required /></div>
+              <button type="submit" id="topupSubmitBtn">Continue</button>
+            </form>
+          </div>
+
+          <div class="page-side-stack compact-page-side-stack">
+            <div class="wallet-card-preview wallet-card-preview-dashboard compact-card-preview page-card-preview realistic-card-preview"><div class="wallet-card-topline"><div class="wallet-card-kicker">Bank Card</div><div class="wallet-card-chip" aria-hidden="true"></div></div><strong id="cardPreviewBank">No bank selected</strong><div id="cardPreviewNumber" class="wallet-card-number">xxxx xxxx xxxx xxxx</div><div class="wallet-card-footer"><div><span class="wallet-card-label">Cardholder</span><div id="cardPreviewName" class="wallet-card-holder">gmail.com</div></div><div><span class="wallet-card-label">Valid Thru</span><div id="cardPreviewValid" class="wallet-card-valid">MM/YY</div></div></div><div class="wallet-card-meta compact-card-meta"><span id="cardPreviewStatus">Use a saved card or enter a card manually</span><a href="/linkedcard.html" class="wallet-card-link">Manage Card</a></div></div>
+            <div class="panel compact-panel"><div class="panel-head compact-panel-head"><div><div class="panel-kicker">Funding</div><h2>Top Up</h2></div></div><p class="helper-text no-bottom-space">Approve the top up with the OTP sent to your email.</p></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="bankPopup" class="popup"><div class="popup-content popup-dark-card"><div class="popup-tag">VERIFICATION</div><h3>Review Top Up</h3><p id="topupReview" class="helper-text"></p><p class="helper-text">Enter the 6-digit OTP sent to your email to approve this top up.</p><div class="pin-input-group"><input type="password" maxlength="1" class="pin-input topup-otp-input" inputmode="numeric" /><input type="password" maxlength="1" class="pin-input topup-otp-input" inputmode="numeric" /><input type="password" maxlength="1" class="pin-input topup-otp-input" inputmode="numeric" /><input type="password" maxlength="1" class="pin-input topup-otp-input" inputmode="numeric" /><input type="password" maxlength="1" class="pin-input topup-otp-input" inputmode="numeric" /><input type="password" maxlength="1" class="pin-input topup-otp-input" inputmode="numeric" /></div><p id="topupOtpTimer" class="helper-text"></p><p id="topupOtpError"></p><button id="confirmTopupBtn" type="button" onclick="confirmTopup()">Confirm</button><button id="resendTopupOtpBtn" class="secondary-btn" type="button" onclick="resendTopupOtp()">Resend OTP</button><button class="secondary-btn" type="button" onclick="closeBankPopup()">Cancel</button></div></div>
+    <div id="msgPopup" class="popup"><div class="popup-content popup-dark-card"><p id="popup-text"></p><button onclick="closeMsg()">OK</button></div></div>
+
+    <script src="/auth.js"></script>
+    <script>
+      const topupOtpInputs = document.querySelectorAll(".topup-otp-input");
+      const linkedCardText = document.getElementById("linkedCardText");
+      const bankSelect = document.getElementById("topupBankName");
+      const cardInput = document.getElementById("topupCardNumber");
+      const useSavedCardInput = document.getElementById("useSavedCard");
+      const cardPreviewBank = document.getElementById("cardPreviewBank");
+      const cardPreviewNumber = document.getElementById("cardPreviewNumber");
+      const cardPreviewName = document.getElementById("cardPreviewName");
+      const cardPreviewValid = document.getElementById("cardPreviewValid");
+      const cardPreviewStatus = document.getElementById("cardPreviewStatus");
+      const manualCardFields = document.getElementById("manualCardFields");
+      const savedCardOnlyNotice = document.getElementById("savedCardOnlyNotice");
+      const topupOtpTimer = document.getElementById("topupOtpTimer");
+      const topupOtpError = document.getElementById("topupOtpError");
+      const topupSubmitBtn = document.getElementById("topupSubmitBtn");
+      const confirmTopupBtn = document.getElementById("confirmTopupBtn");
+      const resendTopupOtpBtn = document.getElementById("resendTopupOtpBtn");
+      let currentLinkedCard = null;
+      let topupOtpTimeLeft = 30;
+      let topupOtpCountdown = null;
+      let topupOtpBusy = false;
+      let topupBusy = false;
+
+      function formatAmount(value) { return Number(value || 0).toFixed(2); }
+      function getInitial(email) { return String(email || "F").trim().charAt(0).toUpperCase(); }
+      function getCardholderLabel(email) { return String(email || "user").split("@")[0] || "user"; }
+      function formatManualCard(value) { return value.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim(); }
+
+      function setTopupMode(useSaved) {
+        useSavedCardInput.value = useSaved ? "1" : "0";
+        manualCardFields.classList.toggle("hidden", useSaved);
+        savedCardOnlyNotice.classList.toggle("hidden", !useSaved);
+        bankSelect.required = !useSaved;
+        cardInput.required = !useSaved;
+      }
+
+      function startTopupOtpCooldown(seconds = 30) {
+        topupOtpTimeLeft = seconds;
+        if (topupOtpCountdown) clearInterval(topupOtpCountdown);
+        topupOtpTimer.innerText = `Resend available in ${topupOtpTimeLeft}s`;
+        resendTopupOtpBtn.disabled = true;
+        topupOtpCountdown = setInterval(() => {
+          topupOtpTimeLeft -= 1;
+          if (topupOtpTimeLeft <= 0) {
+            topupOtpTimer.innerText = "You can resend OTP now";
+            resendTopupOtpBtn.disabled = false;
+            clearInterval(topupOtpCountdown);
+            topupOtpCountdown = null;
+            return;
+          }
+          topupOtpTimer.innerText = `Resend available in ${topupOtpTimeLeft}s`;
+        }, 1000);
+      }
+
+      topupOtpInputs.forEach((input, index) => {
+        input.addEventListener("input", () => {
+          input.value = input.value.replace(/\D/g, "");
+          if (input.value.length === 1 && index < topupOtpInputs.length - 1) topupOtpInputs[index + 1].focus();
+          if (getTopupOtpValue().length === 6 && !topupOtpBusy) confirmTopup();
+        });
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Backspace" && input.value === "" && index > 0) topupOtpInputs[index - 1].focus();
+        });
+      });
+
+      requireAuth({ onSuccess: (user) => { document.getElementById("profileEmailLine").innerText = user.email; document.getElementById("profileInitial").innerText = getInitial(user.email); cardPreviewName.innerText = getCardholderLabel(user.email); } }).then(async (user) => {
+        if (!user) return;
+        fetch("/dashboard-balance").then((res) => res.json()).then((data) => { document.getElementById("balanceValue").innerText = formatAmount(data.balance); }).catch(() => { document.getElementById("balanceValue").innerText = "0.00"; });
+      });
+
+      async function loadLinkedCard() {
+        const res = await fetch("/linked-card");
+        const data = await res.json();
+        currentLinkedCard = data.linkedCard;
+        if (currentLinkedCard) {
+          linkedCardText.innerText = `${currentLinkedCard.bankName} ${currentLinkedCard.maskedCard}`;
+          bankSelect.value = currentLinkedCard.bankName;
+          cardInput.value = currentLinkedCard.maskedCard;
+          cardPreviewBank.innerText = currentLinkedCard.bankName;
+          cardPreviewNumber.innerText = currentLinkedCard.maskedCard;
+          cardPreviewValid.innerText = currentLinkedCard.validThru || "MM/YY";
+          cardPreviewStatus.innerText = "Ready for your next top up";
+          setTopupMode(true);
+        } else {
+          linkedCardText.innerText = "No saved card yet. You can still enter a card below.";
+          bankSelect.value = "";
+          cardInput.value = "";
+          cardPreviewBank.innerText = "No bank selected";
+          cardPreviewNumber.innerText = "xxxx xxxx xxxx xxxx";
+          cardPreviewValid.innerText = "MM/YY";
+          cardPreviewStatus.innerText = "Use a saved card or enter a card manually";
+          setTopupMode(false);
+        }
+      }
+
+      bankSelect.addEventListener("change", () => {
+        if (currentLinkedCard && bankSelect.value !== currentLinkedCard.bankName) {
+          setTopupMode(false);
+          if (cardInput.value === currentLinkedCard.maskedCard) cardInput.value = "";
+        }
+        if (useSavedCardInput.value === "0") cardPreviewBank.innerText = bankSelect.value || "No bank selected";
+      });
+
+      cardInput.addEventListener("focus", () => {
+        if (currentLinkedCard && useSavedCardInput.value === "1") {
+          setTopupMode(false);
+          cardInput.value = "";
+        }
+      });
+
+      cardInput.addEventListener("input", () => {
+        if (currentLinkedCard && cardInput.value !== currentLinkedCard.maskedCard) setTopupMode(false);
+        if (useSavedCardInput.value === "0") {
+          cardInput.value = formatManualCard(cardInput.value);
+          cardPreviewNumber.innerText = cardInput.value || "xxxx xxxx xxxx xxxx";
+          cardPreviewBank.innerText = bankSelect.value || "No bank selected";
+          cardPreviewStatus.innerText = "Manual card entry selected";
+        }
+      });
+
+      function showPopup(msg, redirect = null) {
+        document.getElementById("popup-text").innerText = msg;
+        document.getElementById("msgPopup").style.display = "flex";
+        const content = document.querySelector("#msgPopup .popup-content");
+        if (content) {
+          content.classList.remove("is-success", "is-error");
+          let tag = content.querySelector(".popup-tag");
+          if (!tag) {
+            tag = document.createElement("div");
+            tag.className = "popup-tag";
+            content.insertBefore(tag, content.firstChild);
+          }
+          if (String(msg).toLowerCase().includes("successful") || String(msg).toLowerCase().includes("sent")) {
+            content.classList.add("is-success");
+            tag.innerText = "VERIFICATION READY";
+          } else {
+            tag.innerText = "NOTICE";
+          }
+        }
+        if (redirect) setTimeout(() => { window.location.href = redirect; }, 1500);
+      }
+
+      function closeMsg() { document.getElementById("msgPopup").style.display = "none"; }
+
+      function openBankPopup(message = "Top up OTP sent to your email.") {
+        const amount = document.getElementById("topupAmount").value || "0.00";
+        const previewSource = useSavedCardInput.value === "1" && currentLinkedCard ? `${currentLinkedCard.bankName} ${currentLinkedCard.maskedCard}` : `${bankSelect.value} ${cardInput.value}`;
+        document.getElementById("topupReview").innerText = `${previewSource} | RM ${Number(amount).toFixed(2)} | ${message}`;
+        document.getElementById("bankPopup").style.display = "flex";
+        topupOtpError.innerText = "";
+        topupOtpInputs.forEach((input) => { input.value = ""; });
+        confirmTopupBtn.disabled = false;
+        confirmTopupBtn.innerText = "Confirm";
+        startTopupOtpCooldown(30);
+        if (topupOtpInputs[0]) topupOtpInputs[0].focus();
+      }
+
+      function closeBankPopup() {
+        document.getElementById("bankPopup").style.display = "none";
+        topupOtpInputs.forEach((input) => { input.value = ""; });
+        topupOtpError.innerText = "";
+        if (topupOtpCountdown) clearInterval(topupOtpCountdown);
+        topupOtpCountdown = null;
+        topupOtpTimer.innerText = "";
+        resendTopupOtpBtn.disabled = false;
+        confirmTopupBtn.disabled = false;
+        confirmTopupBtn.innerText = "Confirm";
+      }
+
+      function getTopupOtpValue() { return Array.from(topupOtpInputs).map((input) => input.value).join(""); }
+
+      document.getElementById("topupForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (topupBusy) return;
+        topupBusy = true;
+        topupSubmitBtn.disabled = true;
+        topupSubmitBtn.innerText = "Preparing...";
+        try {
+          const formData = new URLSearchParams(new FormData(e.target));
+          const res = await fetch("/prepare-topup", { method: "POST", body: formData });
+          const data = await res.json();
+          if (data.success) openBankPopup(data.message || "Top up OTP sent to your email.");
+          else showPopup(data.message);
+        } catch (error) {
+          showPopup("Unable to prepare top up right now.");
+        } finally {
+          topupBusy = false;
+          topupSubmitBtn.disabled = false;
+          topupSubmitBtn.innerText = "Continue";
+        }
+      });
+
+      async function resendTopupOtp() {
+        if (topupOtpBusy || topupOtpTimeLeft > 0) return;
+        topupOtpBusy = true;
+        resendTopupOtpBtn.disabled = true;
+        try {
+          const res = await fetch("/resend-topup-otp", { method: "POST" });
+          const data = await res.json();
+          if (data.success) {
+            const reviewParts = document.getElementById("topupReview").innerText.split(" | ").slice(0, 2);
+            document.getElementById("topupReview").innerText = reviewParts.join(" | ");
+            topupOtpError.innerText = "";
+            topupOtpInputs.forEach((input) => { input.value = ""; });
+            startTopupOtpCooldown(30);
+          } else {
+            topupOtpError.innerText = data.message;
+          }
+        } catch (error) {
+          topupOtpError.innerText = "Unable to resend top up OTP right now.";
+        } finally {
+          topupOtpBusy = false;
+          if (topupOtpTimeLeft <= 0) resendTopupOtpBtn.disabled = false;
+        }
+      }
+
+      async function confirmTopup() {
+        const otp = getTopupOtpValue();
+        if (otp.length !== 6 || topupOtpBusy) return;
+        topupOtpBusy = true;
+        confirmTopupBtn.disabled = true;
+        confirmTopupBtn.innerText = "Confirming...";
+        try {
+          const res = await fetch("/confirm-topup", { method: "POST", body: new URLSearchParams({ otp }) });
+          const data = await res.json();
+          if (data.success) {
+            closeBankPopup();
+            showPopup("Top up successful.", data.redirect);
+          } else {
+            topupOtpError.innerText = data.message;
+          }
+        } catch (error) {
+          topupOtpError.innerText = "Unable to confirm top up right now.";
+        }
+        topupOtpBusy = false;
+        confirmTopupBtn.disabled = false;
+        confirmTopupBtn.innerText = "Confirm";
+      }
+
+      loadLinkedCard();
+    </script>
+  </body>
+</html>

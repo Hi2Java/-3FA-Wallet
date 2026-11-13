@@ -1,0 +1,27 @@
+{
+  "name": "3fa-wallet",
+  "version": "1.0.0",
+  "description": "Three-factor wallet prototype built with Express and MySQL",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "check": "node --check server.js"
+  },
+  "keywords": [
+    "wallet",
+    "express",
+    "mysql",
+    "fyp"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "body-parser": "^2.2.2",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "mysql2": "^3.19.1",
+    "nodemailer": "^7.0.13"
+  }
+}

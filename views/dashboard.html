@@ -1,0 +1,243 @@
+﻿<!doctype html>
+<html>
+  <head>
+    <title>FortiWallet | Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+
+  <body>
+    <div class="dashboard-app">
+      <aside class="dashboard-sidebar">
+        <div class="sidebar-brand"><div class="brand-mark"><span></span><span></span></div><div><div class="sidebar-brand-name">FortiWallet</div><div class="sidebar-brand-subtitle">Secure e-wallet</div></div></div>
+        <div class="sidebar-profile"><div class="sidebar-avatar" id="profileInitial">F</div><div class="sidebar-profile-copy"><strong id="welcomeText">Welcome</strong><span id="profileEmailLine">Loading account...</span></div></div>
+        <nav class="sidebar-nav"><a href="/dashboard" class="sidebar-link active">Dashboard</a><a href="/transfer.html" class="sidebar-link">Transfer</a><a href="/topup.html" class="sidebar-link">Top Up</a><a href="/history.html" class="sidebar-link">History</a><a href="/linkedcard.html" class="sidebar-link">Manage Card</a><a href="/editprofile.html" class="sidebar-link">Edit Profile</a></nav>
+        <div class="sidebar-footer"><a href="/logout" class="sidebar-link sidebar-link-danger">Log Out</a></div>
+      </aside>
+
+      <main class="dashboard-main">
+        <section class="dashboard-header-card compact-header-card">
+          <div><div class="dashboard-overline">Overview</div><h1>Dashboard</h1><p class="dashboard-subtitle">Your wallet balance, recent activity, and linked card in one place.</p></div>
+          <div class="dashboard-metrics compact-dashboard-metrics"><div class="metric-chip"><span class="metric-label">Balance</span><strong>RM <span id="balance">0.00</span></strong></div><div class="metric-chip"><span class="metric-label">Linked Card</span><strong id="metricCardStatus">Not added</strong></div><div class="metric-chip"><span class="metric-label">Latest Receipts</span><strong id="metricActivityCount">0 records</strong></div></div>
+        </section>
+
+        <section class="dashboard-grid compact-dashboard-grid">
+          <div class="dashboard-stack compact-dashboard-stack">
+            <div class="panel panel-actions compact-panel"><div class="panel-head compact-panel-head"><div><div class="panel-kicker">Quick Actions</div><h2>Use your wallet</h2></div></div><div class="action-grid compact-action-grid"><a href="/transfer.html" class="wallet-action action-transfer compact-wallet-action"><span class="wallet-action-kicker">Send Money</span><strong>Transfer</strong><p>Move funds securely with your transaction PIN.</p></a><a href="/topup.html" class="wallet-action action-topup compact-wallet-action"><span class="wallet-action-kicker">Add Balance</span><strong>Top Up</strong><p>Use your saved card or enter a card directly.</p></a></div></div>
+            <div class="panel panel-activity compact-panel"><div class="panel-head compact-panel-head"><div><div class="panel-kicker">Incoming Transfers</div><h2>Latest incoming records</h2><p class="panel-note compact-note">Latest money received from other wallet users.</p></div><div class="header-inline-actions"><a href="/history.html" class="summary-link">View all</a></div></div><div id="recentActivity" class="dashboard-activity-list compact-activity-list"><p class="helper-text">Loading incoming records...</p></div></div>
+          </div>
+
+          <div class="dashboard-side-stack compact-dashboard-side-stack">
+            <div class="panel panel-graph compact-panel"><div class="panel-head compact-panel-head"><div><div class="panel-kicker">Cash Flow</div><h2>Wallet movement</h2><p class="panel-note compact-note">Based on the latest 6 wallet activities.</p></div><div class="graph-actions"><span id="graphSummary" class="history-status-pill">Loading...</span><button type="button" id="openGraphBtn" class="summary-link summary-link-button">Expand</button></div></div><div class="graph-wrap compact-graph-wrap"><svg id="activityGraph" class="activity-graph" viewBox="0 0 300 190" preserveAspectRatio="none"></svg></div><p class="graph-caption">Tap expand to inspect each wallet movement in detail.</p></div>
+            <div class="wallet-card-preview wallet-card-preview-dashboard compact-card-preview realistic-card-preview"><div class="wallet-card-topline"><div class="wallet-card-kicker">Bank Card</div><div class="wallet-card-chip" aria-hidden="true"></div></div><strong id="cardPreviewBank">No bank selected</strong><div id="cardPreviewNumber" class="wallet-card-number">xxxx xxxx xxxx xxxx</div><div class="wallet-card-footer"><div><span class="wallet-card-label">Cardholder</span><div id="cardPreviewName" class="wallet-card-holder">gmail.com</div></div><div><span class="wallet-card-label">Valid Thru</span><div id="cardPreviewValid" class="wallet-card-valid">MM/YY</div></div></div><div class="wallet-card-meta compact-card-meta"><span id="cardPreviewStatus">Add a card to speed up top up</span><a href="/linkedcard.html" class="wallet-card-link">Manage Card</a></div></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="graphPopup" class="popup"><div class="popup-content popup-dark-card graph-popup-card graph-popup-clean"><div class="graph-popup-top"><h3>Wallet movement</h3><div id="graphPointBadge" class="graph-point-badge">Latest movement</div></div><div class="graph-3d-surface"><svg id="activityGraphExpanded" class="activity-graph expanded-graph graph-3d" viewBox="0 0 520 300" preserveAspectRatio="none"></svg></div><button onclick="closeGraphPopup()">Close</button></div></div>
+
+    <script src="/auth.js"></script>
+    <script>
+      let latestGraphRows = [];
+      let latestGraphUser = "";
+      const RECENT_ACTIVITY_LIMIT = 2;
+      const GRAPH_LIMIT = 6;
+      function formatAmount(value) { return Number(value || 0).toFixed(2); }
+      function getInitial(email) { return String(email || "F").trim().charAt(0).toUpperCase(); }
+      function getCardholderLabel(email) { return String(email || "user").split("@")[0] || "user"; }
+      function isTopupNotification(tx, email) {
+        return tx.receiver === email && tx.sender !== email && /bank|maybank|cimb|public|rhb|hong leong|islam/i.test(String(tx.sender || ""));
+      }
+      function isIncomingTransferNotification(tx, email) {
+        return tx.receiver === email && tx.sender !== email && !isTopupNotification(tx, email);
+      }
+      function renderGraph(svgId, rows, userEmail, width, height, showLabels = true, variant = "default") {
+        const svg = document.getElementById(svgId);
+        svg.innerHTML = "";
+        svg.onclick = null;
+        if (!Array.isArray(rows) || rows.length === 0) {
+          svg.innerHTML = `<text x="16" y="${height / 2}" fill="${variant === "threeD" ? "#61708f" : "#8fa0c7"}" font-size="12">No wallet movement yet</text>`;
+          if (variant === "threeD") {
+            const pointBadge = document.getElementById("graphPointBadge");
+            if (pointBadge) pointBadge.innerText = "No recent movement";
+          }
+          return { net: 0 };
+        }
+        const ordered = rows.slice(0, GRAPH_LIMIT).reverse();
+        const deltas = ordered.map((tx) => {
+          const isSender = tx.sender === userEmail;
+          const amount = Number(tx.amount || 0);
+          return isSender ? -amount : amount;
+        });
+        const min = Math.min(...deltas, 0);
+        const max = Math.max(...deltas, 0, 1);
+        const padX = 26;
+        const padY = 28;
+        const usableWidth = width - padX * 2;
+        const usableHeight = height - padY * 2;
+        const range = max - min || 1;
+        const points = deltas.map((value, index) => {
+          const x = padX + (usableWidth * index) / Math.max(deltas.length - 1, 1);
+          const y = height - padY - ((value - min) / range) * usableHeight;
+          return { x, y, value };
+        });
+        const polyline = points.map((point) => `${point.x},${point.y}`).join(" ");
+        const circles = points.map((point, index) => { const anchor = index === 0 ? "start" : index === points.length - 1 ? "end" : "middle"; const labelX = index === 0 ? point.x + 6 : index === points.length - 1 ? point.x - 6 : point.x; const preferredY = point.y < 42 ? point.y + 18 : point.y - 14; const labelY = Math.max(18, Math.min(height - 14, preferredY)); const label = showLabels ? `<text x="${labelX}" y="${labelY}" text-anchor="${anchor}" fill="#dce5ff" font-size="10">${point.value >= 0 ? "+" : "-"}RM ${formatAmount(Math.abs(point.value))}</text>` : ""; return `<circle cx="${point.x}" cy="${point.y}" r="4" fill="${point.value >= 0 ? "#45d6a8" : "#ff8c87"}" />${label}`; }).join("");
+        const shadowPolyline = points.map((point) => `${point.x + 10},${point.y + 14}`).join(" ");
+        if (variant === "threeD") {
+          const gridCols = Array.from({ length: 6 }, (_, index) => {
+            const x = padX + (usableWidth * index) / 5;
+            return `<line x1="${x}" y1="${padY - 2}" x2="${x}" y2="${height - padY + 2}" stroke="#cfd4dd" stroke-width="1" stroke-dasharray="6 8" />`;
+          }).join("");
+          const gridRows = Array.from({ length: 5 }, (_, index) => {
+            const y = padY + (usableHeight * index) / 4;
+            return `<line x1="${padX - 4}" y1="${y}" x2="${width - padX + 4}" y2="${y}" stroke="#cfd4dd" stroke-width="1" stroke-dasharray="6 8" />`;
+          }).join("");
+          const glossyNodes = points.map((point, index) => {
+            return `<g class="graph-3d-node" data-index="${index}" data-value="${point.value}" data-amount="${formatAmount(Math.abs(point.value))}" data-type="${point.value >= 0 ? "Money In" : "Money Out"}"><circle cx="${point.x + 6}" cy="${point.y + 12}" r="13" fill="rgba(18, 28, 45, 0.16)" /><circle cx="${point.x}" cy="${point.y}" r="16" fill="url(#${svgId}Node)" filter="url(#${svgId}NodeShadow)" /><circle cx="${point.x - 4}" cy="${point.y - 5}" r="5" fill="rgba(255,255,255,0.55)" /></g>`;
+          }).join("");
+          svg.innerHTML = `
+            <defs>
+              <linearGradient id="${svgId}Line" x1="0" x2="1" y1="0" y2="0">
+                <stop offset="0%" stop-color="#1f79ff" />
+                <stop offset="100%" stop-color="#6a43ff" />
+              </linearGradient>
+              <linearGradient id="${svgId}LineHighlight" x1="0" x2="1" y1="0" y2="0">
+                <stop offset="0%" stop-color="#7ec1ff" />
+                <stop offset="100%" stop-color="#c9a8ff" />
+              </linearGradient>
+              <radialGradient id="${svgId}Node" cx="35%" cy="30%">
+                <stop offset="0%" stop-color="#f7fbff" />
+                <stop offset="28%" stop-color="#7ab9ff" />
+                <stop offset="100%" stop-color="#1d6bff" />
+              </radialGradient>
+              <filter id="${svgId}NodeShadow" x="-80%" y="-80%" width="260%" height="260%">
+                <feDropShadow dx="8" dy="12" stdDeviation="8" flood-color="rgba(31, 61, 109, 0.28)" />
+              </filter>
+            </defs>
+            ${gridCols}
+            ${gridRows}
+            <polyline fill="none" stroke="rgba(23, 40, 74, 0.14)" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" points="${shadowPolyline}" />
+            <polyline fill="none" stroke="url(#${svgId}Line)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" points="${polyline}" />
+            <polyline fill="none" stroke="url(#${svgId}LineHighlight)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" points="${polyline}" opacity="0.95" />
+            ${glossyNodes}
+          `;
+          const pointBadge = document.getElementById("graphPointBadge");
+          const nodeGroups = svg.querySelectorAll(".graph-3d-node");
+          const updatePointBadge = (node) => {
+            if (!pointBadge || !node) return;
+            const amount = node.dataset.amount || "0.00";
+            const type = node.dataset.type || "Activity";
+            const prefix = Number(node.dataset.value || 0) >= 0 ? "+" : "-";
+            pointBadge.innerText = `${type} ${prefix}RM ${amount}`;
+          };
+          nodeGroups.forEach((node, index) => {
+            node.style.cursor = "pointer";
+            node.addEventListener("mouseenter", () => updatePointBadge(node));
+            node.addEventListener("click", () => updatePointBadge(node));
+            if (index === nodeGroups.length - 1) {
+              updatePointBadge(node);
+            }
+          });
+        } else {
+          svg.innerHTML = `
+            <defs>
+              <linearGradient id="${svgId}Line" x1="0" x2="1" y1="0" y2="0">
+                <stop offset="0%" stop-color="#45d6a8" />
+                <stop offset="100%" stop-color="#5ca8ff" />
+              </linearGradient>
+              <linearGradient id="${svgId}Shadow" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0%" stop-color="rgba(36, 63, 112, 0.85)" />
+                <stop offset="100%" stop-color="rgba(19, 30, 58, 0.35)" />
+              </linearGradient>
+            </defs>
+            <polygon points="${polyline} ${shadowPolyline.split(" ").reverse().join(" ")}" fill="rgba(65, 111, 190, 0.12)" />
+            <polyline fill="none" stroke="url(#${svgId}Shadow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" points="${shadowPolyline}" />
+            <line x1="${padX}" y1="${height - padY}" x2="${width - padX}" y2="${height - padY}" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
+            <line x1="${padX}" y1="${height / 2}" x2="${width - padX}" y2="${height / 2}" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="4 6" />
+            <polyline fill="none" stroke="url(#${svgId}Line)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" points="${polyline}" />
+            ${circles}
+          `;
+        }
+        return { net: deltas.reduce((sum, value) => sum + value, 0) };
+      }
+      function buildGraphs(rows, userEmail) {
+        latestGraphRows = rows || [];
+        latestGraphUser = userEmail;
+        const main = renderGraph("activityGraph", latestGraphRows, latestGraphUser, 300, 190, false, "default");
+        renderGraph("activityGraphExpanded", latestGraphRows, latestGraphUser, 520, 300, true, "threeD");
+        document.getElementById("graphSummary").innerText = `${main.net >= 0 ? "+" : "-"}RM ${formatAmount(Math.abs(main.net))}`;
+      }
+      function closeGraphPopup() { document.getElementById("graphPopup").style.display = "none"; }
+      document.getElementById("openGraphBtn").addEventListener("click", () => { buildGraphs(latestGraphRows, latestGraphUser); document.getElementById("graphPopup").style.display = "flex"; });
+      function setRecentActivityMessage(message) {
+        const container = document.getElementById("recentActivity");
+        container.innerHTML = "";
+        const empty = document.createElement("p");
+        empty.className = "helper-text";
+        empty.textContent = message;
+        container.appendChild(empty);
+      }
+      function renderRecentActivity(rows, user) {
+        const container = document.getElementById("recentActivity");
+        container.innerHTML = "";
+        buildGraphs(rows, user.email);
+        if (!Array.isArray(rows) || rows.length === 0) {
+          document.getElementById("metricActivityCount").innerText = "0 records";
+          setRecentActivityMessage("No incoming transfer records yet.");
+          return;
+        }
+        const incomingRows = rows.filter((tx) => isIncomingTransferNotification(tx, user.email));
+        const notifications = incomingRows.slice(0, RECENT_ACTIVITY_LIMIT);
+        document.getElementById("metricActivityCount").innerText = `${incomingRows.length} ${incomingRows.length === 1 ? "record" : "records"}`;
+        if (notifications.length === 0) {
+          setRecentActivityMessage("No incoming transfer records yet.");
+          return;
+        }
+        notifications.forEach((tx) => {
+          const activityDate = new Date(tx.timestamp);
+          const item = document.createElement("div");
+          item.className = "dashboard-activity-item compact-activity-item";
+          const copy = document.createElement("div");
+          copy.className = "dashboard-activity-copy";
+          const title = document.createElement("strong");
+          title.textContent = "Money received";
+          const sender = document.createElement("p");
+          sender.textContent = `From ${tx.sender}`;
+          const time = document.createElement("span");
+          time.textContent = `${activityDate.toLocaleDateString()} | ${activityDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+          copy.append(title, sender, time);
+          const amount = document.createElement("div");
+          amount.className = "dashboard-activity-amount recent-in";
+          amount.textContent = `+RM ${formatAmount(tx.amount)}`;
+          item.append(copy, amount);
+          container.appendChild(item);
+        });
+      }
+      function loadDashboardActivity(user) {
+        fetch("/transactions")
+          .then((res) => res.json())
+          .then((rows) => renderRecentActivity(rows, user))
+          .catch(() => {
+            setRecentActivityMessage("Unable to load incoming records.");
+            document.getElementById("metricActivityCount").innerText = "0 records";
+            buildGraphs([], user.email);
+          });
+      }
+      requireAuth({ onSuccess: (user) => { document.getElementById("welcomeText").innerText = "Welcome"; document.getElementById("profileEmailLine").innerText = user.email; document.getElementById("profileInitial").innerText = getInitial(user.email); }}).then(async (user) => {
+        if (!user) return;
+        fetch("/dashboard-balance").then((res) => res.json()).then((data) => { document.getElementById("balance").innerText = formatAmount(data.balance); }).catch(() => { document.getElementById("balance").innerText = "0.00"; });
+        document.getElementById("cardPreviewName").innerText = getCardholderLabel(user.email);
+        fetch("/linked-card").then((res) => res.json()).then((data) => { if (data.linkedCard) { document.getElementById("metricCardStatus").innerText = "Saved"; document.getElementById("cardPreviewBank").innerText = data.linkedCard.bankName; document.getElementById("cardPreviewNumber").innerText = data.linkedCard.maskedCard; document.getElementById("cardPreviewValid").innerText = data.linkedCard.validThru || "MM/YY"; document.getElementById("cardPreviewStatus").innerText = "Ready for your next top up"; } else { document.getElementById("metricCardStatus").innerText = "Not added"; } }).catch(() => { document.getElementById("metricCardStatus").innerText = "Unavailable"; });
+        loadDashboardActivity(user);
+      });
+    </script>
+  </body>
+</html>
+
+
+
+
+
+

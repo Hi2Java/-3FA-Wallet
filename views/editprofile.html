@@ -1,0 +1,51 @@
+﻿<!doctype html>
+<html>
+  <head>
+    <title>FortiWallet | Edit Profile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+
+  <body>
+    <div class="dashboard-app app-shell">
+      <aside class="dashboard-sidebar">
+        <div class="sidebar-brand"><div class="brand-mark"><span></span><span></span></div><div><div class="sidebar-brand-name">FortiWallet</div><div class="sidebar-brand-subtitle">Secure e-wallet</div></div></div>
+        <div class="sidebar-profile"><div class="sidebar-avatar" id="profileInitial">F</div><div class="sidebar-profile-copy"><strong>Welcome</strong><span id="profileEmailLine">Loading account...</span></div></div>
+        <nav class="sidebar-nav"><a href="/dashboard" class="sidebar-link">Dashboard</a><a href="/transfer.html" class="sidebar-link">Transfer</a><a href="/topup.html" class="sidebar-link">Top Up</a><a href="/history.html" class="sidebar-link">History</a><a href="/linkedcard.html" class="sidebar-link">Manage Card</a><a href="/editprofile.html" class="sidebar-link active">Edit Profile</a></nav>
+        <div class="sidebar-footer"><a href="/logout" class="sidebar-link sidebar-link-danger">Log Out</a></div>
+      </aside>
+
+      <main class="dashboard-main app-page-main">
+        <section class="dashboard-header-card page-header-card compact-header-card profile-header-noaside"><div><div class="dashboard-overline">Profile Settings</div><h1>Edit Profile</h1></div></section>
+        <section class="page-grid two-column-grid profile-equal-grid profile-balanced-grid">
+          <div class="panel form-panel compact-panel"><div class="panel-head panel-head-column compact-panel-head"><div><div class="panel-kicker">Password</div><h2>Change Password</h2></div></div><form id="passwordForm" class="panel-form compact-form-layout equal-width-form balanced-form password-form-better"><label class="field-label" for="newPassword">New Password</label><div class="password-field"><input id="newPassword" type="password" name="newPassword" placeholder="New password" required /><button type="button" class="password-toggle" data-target="newPassword" aria-label="Show password"></button></div><label class="field-label" for="confirmPassword">Confirm Password</label><div class="password-field"><input id="confirmPassword" type="password" name="confirmPassword" placeholder="Confirm password" required /><button type="button" class="password-toggle" data-target="confirmPassword" aria-label="Show password"></button></div><button type="submit" id="passwordSubmitBtn">Update Password</button></form></div>
+          <div class="panel form-panel compact-panel"><div class="panel-head panel-head-column compact-panel-head"><div><div class="panel-kicker">Transaction PIN</div><h2>Change PIN</h2></div></div><form id="pinForm" class="panel-form compact-form-layout equal-width-form balanced-form password-form-better"><div class="pin-section compact-pin-section"><p class="pin-label">New PIN</p><div class="pin-input-group"><input type="password" maxlength="1" class="pin-input change-pin" inputmode="numeric" /><input type="password" maxlength="1" class="pin-input change-pin" inputmode="numeric" /><input type="password" maxlength="1" class="pin-input change-pin" inputmode="numeric" /><input type="password" maxlength="1" class="pin-input change-pin" inputmode="numeric" /><input type="password" maxlength="1" class="pin-input change-pin" inputmode="numeric" /><input type="password" maxlength="1" class="pin-input change-pin" inputmode="numeric" /></div><input type="hidden" name="newPin" id="newPinHidden" /></div><div class="pin-section compact-pin-section"><p class="pin-label">Confirm PIN</p><div class="pin-input-group"><input type="password" maxlength="1" class="pin-input confirm-pin" inputmode="numeric" /><input type="password" maxlength="1" class="pin-input confirm-pin" inputmode="numeric" /><input type="password" maxlength="1" class="pin-input confirm-pin" inputmode="numeric" /><input type="password" maxlength="1" class="pin-input confirm-pin" inputmode="numeric" /><input type="password" maxlength="1" class="pin-input confirm-pin" inputmode="numeric" /><input type="password" maxlength="1" class="pin-input confirm-pin" inputmode="numeric" /></div><input type="hidden" name="confirmPin" id="confirmPinHidden" /></div><button type="submit" id="pinSubmitBtn">Update PIN</button></form></div>
+        </section>
+      </main>
+    </div>
+
+    <div id="popup" class="popup"><div class="popup-content popup-dark-card"><p id="popup-text"></p><button onclick="closePopup()">OK</button></div></div>
+    <script src="/popup.js"></script><script src="/auth.js"></script>
+    <script>
+      function getInitial(email) { return String(email || "F").trim().charAt(0).toUpperCase(); }
+      requireAuth({ onSuccess: (user) => { document.getElementById("profileEmailLine").innerText = user.email; document.getElementById("profileInitial").innerText = getInitial(user.email); }});
+      document.querySelectorAll(".password-toggle").forEach((toggle) => {
+        toggle.addEventListener("click", () => {
+          const target = document.getElementById(toggle.dataset.target);
+          const show = target.type === "password";
+          target.type = show ? "text" : "password";
+          toggle.classList.toggle("is-visible", show);
+          toggle.setAttribute("aria-label", show ? "Hide password" : "Show password");
+        });
+      });
+      function wirePinInputs(inputs, onUpdate) { inputs.forEach((input, index) => { input.addEventListener("input", () => { input.value = input.value.replace(/\D/g, ""); if (input.value.length === 1 && index < inputs.length - 1) inputs[index + 1].focus(); onUpdate(); }); input.addEventListener("keydown", (e) => { if (e.key === "Backspace" && input.value === "" && index > 0) inputs[index - 1].focus(); }); }); }
+      const newPinInputs = document.querySelectorAll('.change-pin'); const confirmPinInputs = document.querySelectorAll('.confirm-pin'); const newPinHidden = document.getElementById('newPinHidden'); const confirmPinHidden = document.getElementById('confirmPinHidden'); const passwordSubmitBtn = document.getElementById("passwordSubmitBtn"); const pinSubmitBtn = document.getElementById("pinSubmitBtn"); let passwordBusy = false; let pinBusy = false;
+      wirePinInputs(newPinInputs, () => { newPinHidden.value = Array.from(newPinInputs).map((input) => input.value).join(''); });
+      wirePinInputs(confirmPinInputs, () => { confirmPinHidden.value = Array.from(confirmPinInputs).map((input) => input.value).join(''); });
+      document.getElementById("passwordForm").addEventListener("submit", async (e) => { e.preventDefault(); if (passwordBusy) return; const form = e.target; if (form.newPassword.value !== form.confirmPassword.value) return showPopup("Passwords do not match"); passwordBusy = true; passwordSubmitBtn.disabled = true; passwordSubmitBtn.innerText = "Updating..."; try { const res = await fetch("/reset-password", { method: "POST", body: new URLSearchParams(new FormData(form)) }); const data = await res.json(); if (data.success) { showPopup("Password updated successfully"); form.reset(); } else showPopup(data.message); } catch (error) { showPopup("Unable to update password right now."); } finally { passwordBusy = false; passwordSubmitBtn.disabled = false; passwordSubmitBtn.innerText = "Update Password"; } });
+      document.getElementById("pinForm").addEventListener("submit", async (e) => { e.preventDefault(); if (pinBusy) return; newPinHidden.value = Array.from(newPinInputs).map((input) => input.value).join(''); confirmPinHidden.value = Array.from(confirmPinInputs).map((input) => input.value).join(''); if (newPinHidden.value !== confirmPinHidden.value) return showPopup("PIN does not match"); pinBusy = true; pinSubmitBtn.disabled = true; pinSubmitBtn.innerText = "Updating..."; try { const res = await fetch("/change-pin", { method: "POST", body: new URLSearchParams(new FormData(e.target)) }); const data = await res.json(); if (data.success) { showPopup("PIN updated successfully"); e.target.reset(); newPinInputs.forEach((input) => (input.value = '')); confirmPinInputs.forEach((input) => (input.value = '')); } else showPopup(data.message); } catch (error) { showPopup("Unable to update PIN right now."); } finally { pinBusy = false; pinSubmitBtn.disabled = false; pinSubmitBtn.innerText = "Update PIN"; } });
+    </script>
+  </body>
+</html>
+
+

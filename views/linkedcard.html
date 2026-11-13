@@ -1,0 +1,107 @@
+﻿<!doctype html>
+<html>
+  <head>
+    <title>FortiWallet | Linked Card</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+
+  <body>
+    <div class="dashboard-app app-shell">
+      <aside class="dashboard-sidebar">
+        <div class="sidebar-brand"><div class="brand-mark"><span></span><span></span></div><div><div class="sidebar-brand-name">FortiWallet</div><div class="sidebar-brand-subtitle">Secure e-wallet</div></div></div>
+        <div class="sidebar-profile"><div class="sidebar-avatar" id="profileInitial">F</div><div class="sidebar-profile-copy"><strong>Welcome</strong><span id="profileEmailLine">Loading account...</span></div></div>
+        <nav class="sidebar-nav">
+          <a href="/dashboard" class="sidebar-link">Dashboard</a>
+          <a href="/transfer.html" class="sidebar-link">Transfer</a>
+          <a href="/topup.html" class="sidebar-link">Top Up</a>
+          <a href="/history.html" class="sidebar-link">History</a>
+          <a href="/linkedcard.html" class="sidebar-link active">Manage Card</a>
+          <a href="/editprofile.html" class="sidebar-link">Edit Profile</a>
+        </nav>
+        <div class="sidebar-footer"><a href="/logout" class="sidebar-link sidebar-link-danger">Log Out</a></div>
+      </aside>
+
+      <main class="dashboard-main app-page-main">
+        <section class="dashboard-header-card page-header-card compact-header-card">
+          <div><div class="dashboard-overline">Payment Method</div><h1>Manage Card</h1><p class="dashboard-subtitle">Save a bank card once for quicker wallet top ups.</p></div>
+          <div class="page-header-aside"><div class="metric-chip compact-metric"><span class="metric-label">Current Status</span><strong id="cardMetricStatus">Not added</strong></div></div>
+        </section>
+        <section class="page-grid two-column-grid topup-style-grid manage-card-layout">
+          <div class="panel form-panel compact-panel manage-card-form-panel"><div class="panel-head panel-head-column compact-panel-head"><div><div class="panel-kicker">Bank Card</div><h2>Card Details</h2></div><p class="panel-note">Save or update your bank card details here.</p></div><form id="cardForm" class="panel-form compact-form-layout manage-card-form"><label class="field-label" for="bankName">Bank</label><select id="bankName" name="bankName" required><option value="">Select Bank</option><option value="Maybank">Maybank</option><option value="CIMB Bank">CIMB Bank</option><option value="Public Bank">Public Bank</option><option value="RHB Bank">RHB Bank</option><option value="Hong Leong Bank">Hong Leong Bank</option><option value="Bank Islam">Bank Islam</option></select><label class="field-label" for="cardNumber">Card Number</label><input id="cardNumber" type="text" name="cardNumber" placeholder="1111 2222 3333 4444" maxlength="19" inputmode="numeric" required /><label class="field-label">Valid Thru</label><div class="valid-thru-row"><input id="validMonth" type="text" placeholder="MM" maxlength="2" inputmode="numeric" /><span class="valid-thru-divider">/</span><input id="validYear" type="text" placeholder="YY" maxlength="2" inputmode="numeric" /></div><input id="validThru" type="hidden" name="validThru" required /><button type="submit" id="saveCardBtn">Save Bank Card</button></form></div>
+          <div class="page-side-stack manage-card-side-stack"><div class="wallet-card-preview wallet-card-preview-dashboard compact-card-preview realistic-card-preview manage-card-preview"><div class="wallet-card-topline"><div class="wallet-card-kicker">Bank Card</div><div class="wallet-card-chip" aria-hidden="true"></div></div><strong id="cardPreviewBank">No bank selected</strong><div id="cardPreviewNumber" class="wallet-card-number">xxxx xxxx xxxx xxxx</div><div class="wallet-card-footer"><div><span class="wallet-card-label">Cardholder</span><div id="cardPreviewName" class="wallet-card-holder">gmail.com</div></div><div><span class="wallet-card-label">Valid Thru</span><div id="cardPreviewValid" class="wallet-card-valid">MM/YY</div></div></div><div class="wallet-card-meta compact-card-meta"><span id="linkedCardStatus">No card linked yet.</span></div></div><div class="panel compact-panel manage-card-flow-panel"><div class="panel-head panel-head-column compact-panel-head"><div><div class="panel-kicker">Card Status</div><h2>Ready for top up</h2></div><p class="panel-note">Once saved, your card can be used on the top up page right away.</p></div><div class="linked-card-strip manage-card-strip"><div><strong id="cardFlowStatus">Not added</strong><p class="helper-text">Your saved card status updates here after every change.</p></div></div></div></div>
+        </section>
+      </main>
+    </div>
+
+    <div id="popup" class="popup"><div class="popup-content popup-dark-card"><p id="popup-text"></p><button onclick="closePopup()">OK</button></div></div>
+    <script src="/popup.js"></script><script src="/auth.js"></script>
+    <script>
+      const linkedCardStatus = document.getElementById("linkedCardStatus"); const cardPreviewBank = document.getElementById("cardPreviewBank"); const cardPreviewNumber = document.getElementById("cardPreviewNumber"); const cardPreviewName = document.getElementById("cardPreviewName"); const cardPreviewValid = document.getElementById("cardPreviewValid"); const cardMetricStatus = document.getElementById("cardMetricStatus"); const cardFlowStatus = document.getElementById("cardFlowStatus"); const saveCardBtn = document.getElementById("saveCardBtn"); const cardForm = document.getElementById("cardForm"); const validMonthInput = document.getElementById("validMonth"); const validYearInput = document.getElementById("validYear"); const validThruHidden = document.getElementById("validThru");
+      function formatCardNumber(value) { return value.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim(); }
+      function isCalendarValidThru(value) {
+        const match = String(value || "").match(/^(0[1-9]|1[0-2])\/(\d{2})$/);
+        if (!match) return false;
+        const month = Number(match[1]);
+        const year = Number(`20${match[2]}`);
+        const now = new Date();
+        const currentMonth = now.getMonth() + 1;
+        const currentYear = now.getFullYear();
+        if (year < currentYear) return false;
+        if (year === currentYear && month < currentMonth) return false;
+        if (year > currentYear + 12) return false;
+        return true;
+      }
+      function syncValidThru() {
+        const month = validMonthInput.value.replace(/\D/g, "").slice(0, 2);
+        const year = validYearInput.value.replace(/\D/g, "").slice(0, 2);
+        validMonthInput.value = month;
+        validYearInput.value = year;
+        validThruHidden.value = month.length === 2 && year.length === 2 ? `${month}/${year}` : "";
+        cardPreviewValid.innerText = validThruHidden.value || "MM/YY";
+      }
+      function getInitial(email) { return String(email || "F").trim().charAt(0).toUpperCase(); }
+      function getCardholderLabel(email) { return String(email || "user").split("@")[0] || "user"; }
+      requireAuth({ onSuccess: (user) => { document.getElementById("profileEmailLine").innerText = user.email; document.getElementById("profileInitial").innerText = getInitial(user.email); cardPreviewName.innerText = getCardholderLabel(user.email); }});
+      async function loadLinkedCard() {
+        const res = await fetch("/linked-card"); const data = await res.json();
+        if (data.linkedCard) {
+          linkedCardStatus.innerText = `${data.linkedCard.bankName} ${data.linkedCard.maskedCard}`;
+          cardPreviewBank.innerText = data.linkedCard.bankName; cardPreviewNumber.innerText = data.linkedCard.maskedCard; cardPreviewValid.innerText = data.linkedCard.validThru || "MM/YY"; cardMetricStatus.innerText = "Saved"; cardFlowStatus.innerText = "Saved"; saveCardBtn.innerText = "Update Bank Card"; cardForm.bankName.value = data.linkedCard.bankName; validMonthInput.value = (data.linkedCard.validThru || "").split("/")[0] || ""; validYearInput.value = (data.linkedCard.validThru || "").split("/")[1] || ""; syncValidThru();
+        } else { linkedCardStatus.innerText = "No card linked yet."; cardPreviewBank.innerText = "No bank selected"; cardPreviewNumber.innerText = "xxxx xxxx xxxx xxxx"; cardPreviewValid.innerText = "MM/YY"; cardMetricStatus.innerText = "Not added"; cardFlowStatus.innerText = "Not added"; saveCardBtn.innerText = "Save Bank Card"; validMonthInput.value = ""; validYearInput.value = ""; syncValidThru(); }
+      }
+      let cardBusy = false;
+      cardForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (cardBusy) return;
+        const cardNumberInput = e.target.cardNumber;
+        syncValidThru();
+        cardNumberInput.value = cardNumberInput.value.replace(/\D/g, "");
+        if (!isCalendarValidThru(validThruHidden.value)) return showPopup("Enter a valid card expiry date");
+        cardBusy = true;
+        const previousText = saveCardBtn.innerText;
+        saveCardBtn.disabled = true;
+        saveCardBtn.innerText = previousText.includes("Update") ? "Updating..." : "Saving...";
+        try {
+          const res = await fetch("/linked-card", { method: "POST", body: new URLSearchParams(new FormData(e.target)) });
+          const data = await res.json();
+          if (data.success) { showPopup(data.message); e.target.reset(); loadLinkedCard(); } else showPopup(data.message);
+        } catch (error) {
+          showPopup("Unable to save bank card right now.");
+        } finally {
+          cardBusy = false;
+          saveCardBtn.disabled = false;
+          saveCardBtn.innerText = previousText;
+        }
+      });
+      cardForm.cardNumber.addEventListener("input", (e) => { e.target.value = formatCardNumber(e.target.value); cardPreviewNumber.innerText = e.target.value || "xxxx xxxx xxxx xxxx"; });
+      validMonthInput.addEventListener("input", () => { syncValidThru(); if (validMonthInput.value.length === 2) validYearInput.focus(); });
+      validYearInput.addEventListener("input", syncValidThru);
+      cardForm.bankName.addEventListener("change", (e) => { cardPreviewBank.innerText = e.target.value || "No bank selected"; });
+      loadLinkedCard();
+    </script>
+  </body>
+</html>
+
+
+
